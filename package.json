@@ -1,0 +1,10 @@
+{
+  "name": "mmServer",
+  "version": "1.0.0",
+  "main": "server.mjs",
+  "dependencies": {
+    "mmdb-lib": "2.0.2",
+    "lru-cache": "7.7.3",
+    "uWebSockets.js": "github:e3dio/uWebSockets.js#binaries"
+  }
+}
