@@ -8,8 +8,8 @@ Creates a server for [mmClient](https://github.com/e3dio/mmClient) to provide IP
 
 ## Setup
 
-Edit the [config.mjs](https://github.com/e3dio/mmServer/blob/main/config.mjs) file with your Maxmind key, cacheSize, and listen port
+Edit the [config.mjs](https://github.com/e3dio/mmServer/blob/main/config.mjs) file with your Maxmind key and listen port
 
 ## Usage
 
-`node --experimental-fetch server.mjs`
+`node server.mjs`
