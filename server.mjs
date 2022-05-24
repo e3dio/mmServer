@@ -8,8 +8,6 @@ import { exec } from 'child_process';
 import { promisify } from 'util';
 const execPromise = promisify(exec);
 
-const moreThanWeekOld = (date) => date < new Date(Date.now() - 1000 * 60 * 60 * 24 * 7);
-
 await access('./data').catch(e => mkdir('./data'));
 
 const download = async (url, dest) => {
@@ -20,24 +18,24 @@ const download = async (url, dest) => {
 
 const getLatest = async (type) => {
 	const url = `https://download.maxmind.com/app/geoip_download?edition_id=GeoLite2-${type}&license_key=${maxmind_key}&suffix=tar.gz`;
-	let file = await readdir('./data').then(files => files.sort().reverse().find(a => a.startsWith(`GeoLite2-${type}`) && !a.endsWith('.tar.gz')));
-	if (!file || moreThanWeekOld(new Date(`${file.slice(-8, -4)}-${file.slice(-4, -2)}-${file.slice(-2)}`))) {
-		console.log(new Date(), `Downloading new ${type} dataset..`);
-		const response = await fetch(url, { method: 'HEAD' });
-		if (response.status != 200) { console.log('Download error, check API key'); process.exit(1); };
-		const filename = response.headers.get('content-disposition').slice(21);
-		file = filename.slice(0, -7);
-		await download(url, `./data/${filename}`).then(() => execPromise(`tar -xf ${filename}`, { cwd: './data' }));
-	}
+	const response = await fetch(url, { method: 'HEAD' });
+	if (response.status != 200) { console.log('Download error, check API key'); process.exit(1); };
+	const tarFile = response.headers.get('content-disposition').slice(21);
+	const directory = tarFile.slice(0, -7);
+	const db = await readFile(`./data/${directory}/GeoLite2-${type}.mmdb`).catch(async e => {
+		console.log(new Date(), `Latest data not found, downloading new ${type} dataset..`);
+		await download(url, `./data/${tarFile}`);
+		await execPromise(`tar -xf ${tarFile}`, { cwd: './data' });
+		return await readFile(`./data/${directory}/GeoLite2-${type}.mmdb`);
+	});
 	const cache = new LRU({ max: cacheSize });
-	const db = await readFile(`./data/${file}/GeoLite2-${type}.mmdb`);
 	return new Reader(db, { cache });
 };
 
 let City, ASN;
 const load = async () => [ City, ASN ] = await Promise.all([ 'City', 'ASN' ].map(getLatest));
 await load();
-setInterval(load, 1000 * 60 * 60 * 24 * 7); // data updated every 7 days
+setInterval(() => new Date().getDay() == 3 && load(), 1000 * 60 * 60 * 24); // new dataset available every Tuesday
 
 App().ws('/', {
 	message: (ws, m, b) => {
@@ -53,6 +51,11 @@ App().ws('/', {
 		const asn = ASN.get(ip)?.autonomous_system_organization || '';
 		ws.send(JSON.stringify({ ip, city, state, stateISO, country, countryISO, lat, lon, asn }));
 	}
-}).listen(port, LIBUS_LISTEN_EXCLUSIVE_PORT, s => {
-	console.log(s ? `listening on ${port}` : 'listen failed');
+}).listen(port, LIBUS_LISTEN_EXCLUSIVE_PORT, listenSocket => {
+	if (listenSocket) {
+		console.log(`Listening on port ${port}`);
+	} else {
+		console.log(`Listen on port ${port} failed`);
+		process.exit(1);
+	}
 });
