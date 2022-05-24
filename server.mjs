@@ -53,9 +53,9 @@ App().ws('/', {
 	}
 }).listen(port, LIBUS_LISTEN_EXCLUSIVE_PORT, listenSocket => {
 	if (listenSocket) {
-		console.log(`Listening on port ${port}`);
+		console.log(`Listening on ${port}`);
 	} else {
-		console.log(`Listen on port ${port} failed`);
+		console.log(`Listen on ${port} failed`);
 		process.exit(1);
 	}
 });
