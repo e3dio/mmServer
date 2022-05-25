@@ -2,10 +2,10 @@ import { port, maxmind_key, cacheSize } from './config.mjs';
 import { App, LIBUS_LISTEN_EXCLUSIVE_PORT } from 'uWebSockets.js';
 import { Reader } from 'mmdb-lib';
 import LRU from 'lru-cache';
-import { readFile, readdir, open, access, mkdir } from 'fs/promises';
-import { Writable } from 'stream';
-import { exec } from 'child_process';
-import { promisify } from 'util';
+import { readFile, readdir, open, access, mkdir } from 'node:fs/promises';
+import { Writable } from 'node:stream';
+import { exec } from 'node:child_process';
+import { promisify } from 'node:util';
 const execPromise = promisify(exec);
 
 await access('./data').catch(e => mkdir('./data'));
