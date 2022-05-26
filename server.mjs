@@ -1,11 +1,12 @@
 import { port, maxmind_key, cacheSize } from './config.mjs';
 import { App, LIBUS_LISTEN_EXCLUSIVE_PORT } from 'uWebSockets.js';
-import { Reader } from 'mmdb-lib';
 import LRU from 'lru-cache';
-import { readFile, readdir, open, access, mkdir } from 'node:fs/promises';
+import { Reader } from 'mmdb-lib';
+import { promisify } from 'node:util';
 import { Writable } from 'node:stream';
 import { exec } from 'node:child_process';
-import { promisify } from 'node:util';
+import { readFile, readdir, open, access, mkdir } from 'node:fs/promises';
+
 const execPromise = promisify(exec);
 
 await access('./data').catch(e => mkdir('./data'));
@@ -26,14 +27,15 @@ const getLatest = async (type) => {
 		console.log(new Date(), `Latest data not found, downloading new ${type} dataset..`);
 		await download(url, `./data/${tarFile}`);
 		await execPromise(`tar -xf ${tarFile}`, { cwd: './data' });
-		return await readFile(`./data/${directory}/GeoLite2-${type}.mmdb`);
+		return readFile(`./data/${directory}/GeoLite2-${type}.mmdb`);
 	});
 	const cache = new LRU({ max: cacheSize });
 	return new Reader(db, { cache });
 };
 
 let City, ASN;
-const load = async () => [ City, ASN ] = await Promise.all([ 'City', 'ASN' ].map(getLatest));
+const load = async () => [ City, ASN ] = await Promise.all(getLatest('City'), getLatest('ASN'));
+
 await load();
 setInterval(() => new Date().getDay() == 3 && load(), 1000 * 60 * 60 * 24); // new dataset available every Tuesday
 
@@ -52,10 +54,6 @@ App().ws('/', {
 		ws.send(JSON.stringify({ ip, city, state, stateISO, country, countryISO, lat, lon, asn }));
 	}
 }).listen(port, LIBUS_LISTEN_EXCLUSIVE_PORT, listenSocket => {
-	if (listenSocket) {
-		console.log(`Listening on ${port}`);
-	} else {
-		console.log(`Listen on ${port} failed`);
-		process.exit(1);
-	}
+	if (listenSocket) { console.log(`Listening on ${port}`); }
+	else { console.log(`Listen on ${port} failed`); process.exit(1); }
 });
