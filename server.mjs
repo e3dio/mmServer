@@ -5,7 +5,7 @@ import { Reader } from 'mmdb-lib';
 import { promisify } from 'node:util';
 import { Writable } from 'node:stream';
 import { exec } from 'node:child_process';
-import { readFile, readdir, open, access, mkdir } from 'node:fs/promises';
+import { readFile, open, access, mkdir } from 'node:fs/promises';
 
 const execPromise = promisify(exec);
 
